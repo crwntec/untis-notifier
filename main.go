@@ -10,16 +10,18 @@ import (
 
 func main() {
 	godotenv.Load()
+	username := os.Getenv("UNTIS_USER")
+	password := os.Getenv("UNTIS_PASS")
+	base_url := os.Getenv("UNTIS_BASEURL")
+	school_name := os.Getenv("UNTIS_SCHOOLNAME")
 	cfg := untis.Config{
-		BaseURL:    "https://st-bernhard-gym.webuntis.com",
-		SchoolName: "st-bernhard-gym",
+		BaseURL:    base_url,
+		SchoolName: school_name,
 	}
 	client, err := untis.NewClient(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	username := os.Getenv("UNTIS_USER")
-	password := os.Getenv("UNTIS_PASS")
 	session, err := client.Login(username, password)
 	if err != nil {
 		log.Fatal(err)
