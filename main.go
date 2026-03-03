@@ -21,15 +21,15 @@ func main() {
 	}
 	username := os.Getenv("UNTIS_USER")
 	password := os.Getenv("UNTIS_PASS")
-	session, err := client.Login(username, password)
+	err = client.Login(username, password)
 	if err != nil {
 		log.Fatal(err)
 	}
-	info, err := client.GetStaticInfo(session)
+	info, err := client.GetStaticInfo()
 	if err != nil {
 		log.Fatal(err)
 	}
-	timetable, err := client.GetTimetable(info, session, "2026-03-02", "2026-03-06")
+	timetable, err := client.GetTimetable(info, "2026-03-02", "2026-03-06")
 	if err != nil {
 		log.Fatal(err)
 	}
