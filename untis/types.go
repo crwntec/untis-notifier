@@ -77,6 +77,7 @@ type TimetableResponseDay struct {
 }
 
 type GridEntry struct {
+	IDs      []int `json:"ids"`
 	Duration struct {
 		Start string `json:"start"`
 		End   string `json:"end"`
@@ -110,6 +111,7 @@ type TimetableDay struct {
 	Lessons []Lesson
 }
 type Lesson struct {
+	IDs     []int `json:"ids"`
 	Start   time.Time
 	End     time.Time
 	Type    string
@@ -138,3 +140,5 @@ type Config struct {
 	BaseURL    string
 	SchoolName string
 }
+
+const Layout = "2006-01-02T15:04"

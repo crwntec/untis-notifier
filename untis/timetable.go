@@ -37,11 +37,11 @@ func TimetableFromResponse(resp TimetableResponse) (Timetable, error) {
 			Status: d.Status,
 		}
 		for _, ge := range d.GridEntries {
-			start, err := time.ParseInLocation("2006-01-02T15:04", ge.Duration.Start, loc)
+			start, err := time.ParseInLocation(Layout, ge.Duration.Start, loc)
 			if err != nil {
 				return Timetable{}, fmt.Errorf("parsing date %q: %w", ge.Duration.Start, err)
 			}
-			end, err := time.ParseInLocation("2006-01-02T15:04", ge.Duration.End, loc)
+			end, err := time.ParseInLocation(Layout, ge.Duration.End, loc)
 			if err != nil {
 				return Timetable{}, fmt.Errorf("parsing date %q: %w", ge.Duration.End, err)
 			}
@@ -59,6 +59,7 @@ func TimetableFromResponse(resp TimetableResponse) (Timetable, error) {
 			}
 
 			lesson := Lesson{
+				IDs:     ge.IDs,
 				Start:   start,
 				End:     end,
 				Type:    ge.Type,

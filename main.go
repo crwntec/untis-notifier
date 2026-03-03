@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"untis-notifier/diff"
 	"untis-notifier/untis"
 
 	"github.com/joho/godotenv"
@@ -29,9 +30,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	timetable, err := client.GetTimetable(info, "2026-03-02", "2026-03-06")
+	timetable, err := client.GetTimetable(info, "2026-03-02", "2026-03-03")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Timetable OK: %+v\n", timetable)
+	// fmt.Printf("Timetable: %+v\n", timetable)
+	d := diff.Compare(timetable, mockTimetable)
+	fmt.Printf("Timetable diff: %+v\n", d)
 }
