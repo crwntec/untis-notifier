@@ -122,10 +122,10 @@ func (c *Client) GetStaticInfo(session Session) (UntisInfo, error) {
 	}, nil
 }
 
-func (c *Client) GetTimetable(info UntisInfo, session Session, start, end string) (TimetableResponse, error) {
+func (c *Client) GetTimetable(info UntisInfo, session Session, start, end string) (Timetable, error) {
 	req, err := http.NewRequest("GET", c.config.BaseURL+"/WebUntis/api/rest/view/v1/timetable/entries", nil)
 	if err != nil {
-		return TimetableResponse{}, fmt.Errorf("creating request failed %w", err)
+		return Timetable{}, fmt.Errorf("creating request failed %w", err)
 	}
 	q := req.URL.Query()
 	q.Add("start", start)
@@ -141,12 +141,11 @@ func (c *Client) GetTimetable(info UntisInfo, session Session, start, end string
 	req.Header.Set("Authorization", "Bearer "+session.Token)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return TimetableResponse{}, fmt.Errorf("fetching timetable failed %w", err)
+		return Timetable{}, fmt.Errorf("fetching timetable failed %w", err)
 	}
 	var timetableResponse TimetableResponse
 	if err := json.NewDecoder(resp.Body).Decode(&timetableResponse); err != nil {
-		return TimetableResponse{}, fmt.Errorf("parsing timetable failed %w", err)
+		return Timetable{}, fmt.Errorf("parsing timetable failed %w", err)
 	}
-	return timetableResponse, nil
-
+	return TimetableFromResponse(timetableResponse)
 }

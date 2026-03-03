@@ -1,6 +1,8 @@
 // untis/types.go
 package untis
 
+import "time"
+
 type AppData struct {
 	CurrentSchoolYear SchoolYear  `json:"currentSchoolYear"`
 	Holidays          []Holiday   `json:"holidays"`
@@ -46,12 +48,29 @@ type UntisInfo struct {
 	Holidays          []Holiday  `json:"holidays"`
 }
 
-type TimetableResponse struct {
-	Days   []TimetableDay `json:"days"`
-	Errors []any          `json:"errors"`
+type SchoolYear struct {
+	DateRange DateRange `json:"dateRange"`
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	TimeGrid  TimeGrid  `json:"timeGrid"`
 }
 
-type TimetableDay struct {
+type DateRange struct {
+	Start string `json:"start"`
+	End   string `json:"end"`
+}
+
+type TimeGrid struct {
+	SchoolYearID int   `json:"schoolyearId"`
+	Units        []any `json:"units"`
+}
+
+type TimetableResponse struct {
+	Days   []TimetableResponseDay `json:"days"`
+	Errors []any                  `json:"errors"`
+}
+
+type TimetableResponseDay struct {
 	Date        string      `json:"date"`
 	Status      string      `json:"status"` // REGULAR | NO_DATA
 	GridEntries []GridEntry `json:"gridEntries"`
@@ -71,32 +90,45 @@ type GridEntry struct {
 }
 
 type PositionItem struct {
-	Current PositionCurrent `json:"current"`
+	Current PositionItemEntry  `json:"current"`
+	Removed *PositionItemEntry `json:"removed"`
 }
 
-type PositionCurrent struct {
+type PositionItemEntry struct {
 	Type      string `json:"type"`
 	Status    string `json:"status"`
 	ShortName string `json:"shortName"`
 	LongName  string `json:"longName"`
 }
 
-type SchoolYear struct {
-	DateRange DateRange `json:"dateRange"`
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	TimeGrid  TimeGrid  `json:"timeGrid"`
+type Timetable struct {
+	Days []TimetableDay
+}
+type TimetableDay struct {
+	Date    time.Time
+	Status  string // REGULAR | NO_DATA
+	Lessons []Lesson
+}
+type Lesson struct {
+	Start   time.Time
+	End     time.Time
+	Type    string
+	Status  string
+	Notes   string
+	Teacher ChangableEntry
+	Subject ChangableEntry
+	Room    ChangableEntry
+}
+type ChangableEntry struct {
+	Current VariableString
+	Planned VariableString
 }
 
-type DateRange struct {
-	Start string `json:"start"`
-	End   string `json:"end"`
+type VariableString struct {
+	Short string
+	Long  string
 }
 
-type TimeGrid struct {
-	SchoolYearID int   `json:"schoolyearId"`
-	Units        []any `json:"units"`
-}
 type Session struct {
 	SessionID string
 	Token     string

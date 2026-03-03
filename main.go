@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"untis-notifier/untis"
+
 	"github.com/joho/godotenv"
 )
 
@@ -32,5 +33,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Timetable OK: %v", timetable)
+	fmt.Printf("Timetable OK: %+v\n", timetable)
 }
