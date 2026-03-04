@@ -39,16 +39,16 @@ Open `https://ntfy.sh/<your-topic>` in a browser, or install the ntfy app and su
 
 All configuration is via environment variables:
 
-| Variable           | Required | Default                                    | Description                                      |
-|--------------------|----------|--------------------------------------------|--------------------------------------------------|
-| `UNTIS_USER`       | ✅       | —                                          | Your WebUntis username                           |
-| `UNTIS_PASS`       | ✅       | —                                          | Your WebUntis password                           |
-| `UNTIS_BASE_URL`   |          | `https://st-bernhard-gym.webuntis.com`     | Base URL of your school's WebUntis instance      |
-| `UNTIS_SCHOOL_NAME`|          | `st-bernhard-gym`                          | School identifier (shown in the login URL)       |
-| `NTFY_BASE_URL`    |          | `https://ntfy.sh`                          | ntfy server URL (use your own for self-hosted)   |
-| `NTFY_TOPIC`       |          | `untis-alerts`                             | ntfy topic to publish to — make this unique      |
-| `CHECK_INTERVAL`   |          | `5m`                                       | How often to check. Accepts Go durations: `1m`, `30s`, `1h` |
-| `LOG_FORMAT`       |          | `text`                                     | `text` for human-readable, `json` for log aggregators |
+| Variable            | Required | Default           | Description                                                 |
+| ------------------- | -------- | ----------------- | ----------------------------------------------------------- |
+| `UNTIS_USER`        | ✅       | —                 | Your WebUntis username                                      |
+| `UNTIS_PASS`        | ✅       | —                 | Your WebUntis password                                      |
+| `UNTIS_BASE_URL`    | ✅       | -                 | Base URL of your school's WebUntis instance                 |
+| `UNTIS_SCHOOL_NAME` | ✅       | -                 | School identifier (shown in the login URL)                  |
+| `NTFY_BASE_URL`     |          | `https://ntfy.sh` | ntfy server URL (use your own for self-hosted)              |
+| `NTFY_TOPIC`        |          | `untis-alerts`    | ntfy topic to publish to — make this unique                 |
+| `CHECK_INTERVAL`    |          | `5m`              | How often to check. Accepts Go durations: `1m`, `30s`, `1h` |
+| `LOG_FORMAT`        |          | `text`            | `text` for human-readable, `json` for log aggregators       |
 
 ---
 
@@ -67,7 +67,7 @@ services:
       - ntfy-data:/var/cache/ntfy
 
   untis-notifier:
-    image: yourdockerhubuser/untis-notifier:latest
+    image: crwntec/untis-notifier:latest
     environment:
       NTFY_BASE_URL: http://ntfy:80
       # ... other vars
@@ -75,22 +75,6 @@ services:
 volumes:
   ntfy-data:
 ```
-
----
-
-## CI/CD
-
-Pushes to `main` automatically build and push a Docker image to Docker Hub.
-Version tags (`v1.2.3`) produce tagged releases.
-
-**Required GitHub repository secrets:**
-
-| Secret               | Value                              |
-|----------------------|------------------------------------|
-| `DOCKERHUB_USERNAME` | Your Docker Hub username           |
-| `DOCKERHUB_TOKEN`    | A Docker Hub access token (not your password) |
-
-Create a Docker Hub token at: Account Settings → Security → New Access Token.
 
 ---
 

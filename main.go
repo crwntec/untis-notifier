@@ -150,12 +150,12 @@ type appConfig struct {
 func configFromEnv() (appConfig, error) {
 	username := os.Getenv("UNTIS_USER")
 	password := os.Getenv("UNTIS_PASS")
-	if username == "" || password == "" {
-		return appConfig{}, fmt.Errorf("UNTIS_USER and UNTIS_PASS must be set")
+	baseURL := os.Getenv("UNTIS_BASE_URL")
+	schoolName := os.Getenv("UNTIS_SCHOOL_NAME")
+	if username == "" || password == "" || baseURL == "" || schoolName == "" {
+		return appConfig{}, fmt.Errorf("UNTIS_USER, UNTIS_PASS, UNTIS_BASE_URL, and UNTIS_SCHOOL_NAME must be set")
 	}
 
-	baseURL := envOr("UNTIS_BASE_URL", "https://st-bernhard-gym.webuntis.com")
-	schoolName := envOr("UNTIS_SCHOOL_NAME", "st-bernhard-gym")
 	ntfyBaseURL := envOr("NTFY_BASE_URL", "https://ntfy.sh")
 	ntfyTopic := envOr("NTFY_TOPIC", "untis-alerts")
 
