@@ -1,6 +1,7 @@
 package untis
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,20 +22,23 @@ type Client struct {
 func NewClient(config Config) (*Client, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating cookie jar %w", err)
+		return nil, fmt.Errorf("error creating cookie jar: %w", err)
 	}
 	return &Client{
 		http: &http.Client{
-			Jar:           jar,
-			Timeout:       15 * time.Second,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse },
+			Jar:     jar,
+			Timeout: 15 * time.Second,
+			// Don't follow redirects — login flow depends on reading the Location header
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		},
 		config: config,
 	}, nil
 }
 
-func (c *Client) newAuthedRequest(method, url string) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, nil)
+func (c *Client) newAuthedRequest(ctx context.Context, method, url string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("new authed request failed: %w", err)
 	}
@@ -64,6 +68,7 @@ func (c *Client) refreshToken() error {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
+		// Token endpoint failed — fall back to full re-login
 		return c.Login(c.username, c.password)
 	}
 
@@ -97,20 +102,23 @@ func (c *Client) Login(username, password string) error {
 		}
 		return fmt.Errorf("login failed: unexpected redirect to %q (status %d)", location, resp.StatusCode)
 	}
+
 	schoolID, err := extractSchoolID(resp.Cookies())
 	if err != nil {
 		return err
 	}
+
 	var jsessionID string
-	for _, c := range resp.Cookies() {
-		if c.Name == "JSESSIONID" {
-			jsessionID = c.Value
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "JSESSIONID" {
+			jsessionID = cookie.Value
 			break
 		}
 	}
 	if jsessionID == "" {
 		return fmt.Errorf("login failed: missing JSESSIONID cookie")
 	}
+
 	u, err := url.Parse(c.config.BaseURL + "/WebUntis")
 	if err != nil {
 		return fmt.Errorf("login failed: %w", err)
@@ -123,23 +131,21 @@ func (c *Client) Login(username, password string) error {
 	}
 	c.username = username
 	c.password = password
-	err = c.refreshToken()
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return c.refreshToken()
 }
 
 func (c *Client) GetStaticInfo() (UntisInfo, error) {
-	req, err := c.newAuthedRequest("GET", c.config.BaseURL+"/WebUntis/api/rest/view/v1/app/data")
+	req, err := c.newAuthedRequest(context.Background(), "GET", c.config.BaseURL+"/WebUntis/api/rest/view/v1/app/data")
 	if err != nil {
-		return UntisInfo{}, fmt.Errorf("creating request failed %w", err)
+		return UntisInfo{}, fmt.Errorf("creating request failed: %w", err)
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return UntisInfo{}, fmt.Errorf("getting info failed: %w", err)
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		return UntisInfo{}, fmt.Errorf("app data request returned status %d", resp.StatusCode)
 	}
@@ -157,11 +163,12 @@ func (c *Client) GetStaticInfo() (UntisInfo, error) {
 	}, nil
 }
 
-func (c *Client) GetTimetable(info UntisInfo, start, end string) (Timetable, error) {
-	req, err := http.NewRequest("GET", c.config.BaseURL+"/WebUntis/api/rest/view/v1/timetable/entries", nil)
+func (c *Client) GetTimetable(ctx context.Context, info UntisInfo, start, end string) (Timetable, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", c.config.BaseURL+"/WebUntis/api/rest/view/v1/timetable/entries", nil)
 	if err != nil {
-		return Timetable{}, fmt.Errorf("creating request failed %w", err)
+		return Timetable{}, fmt.Errorf("creating request failed: %w", err)
 	}
+
 	q := req.URL.Query()
 	q.Add("start", start)
 	q.Add("end", end)
@@ -174,19 +181,29 @@ func (c *Client) GetTimetable(info UntisInfo, start, end string) (Timetable, err
 	req.URL.RawQuery = q.Encode()
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.Header.Set("Authorization", "Bearer "+c.Session.Token)
+
 	resp, err := c.http.Do(req)
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusUnauthorized {
-			if err := c.refreshToken(); err != nil {
-				return Timetable{}, fmt.Errorf("fetching timetable failed %w", err)
-			}
-			return c.GetTimetable(info, start, end)
-		}
-		return Timetable{}, fmt.Errorf("fetching timetable failed %w", err)
+		return Timetable{}, fmt.Errorf("fetching timetable failed: %w", err)
 	}
+	defer resp.Body.Close()
+
+	// BUG FIX: the original code checked resp.StatusCode after a network error,
+	// where resp could be nil. Now we handle the status on the successful response.
+	if resp.StatusCode == http.StatusUnauthorized {
+		if err := c.refreshToken(); err != nil {
+			return Timetable{}, fmt.Errorf("re-auth failed: %w", err)
+		}
+		return c.GetTimetable(ctx, info, start, end)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return Timetable{}, fmt.Errorf("timetable request returned status %d", resp.StatusCode)
+	}
+
 	var timetableResponse TimetableResponse
 	if err := json.NewDecoder(resp.Body).Decode(&timetableResponse); err != nil {
-		return Timetable{}, fmt.Errorf("parsing timetable failed %w", err)
+		return Timetable{}, fmt.Errorf("parsing timetable failed: %w", err)
 	}
 	return TimetableFromResponse(timetableResponse)
 }
