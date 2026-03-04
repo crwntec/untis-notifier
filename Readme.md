@@ -47,6 +47,7 @@ All configuration is via environment variables:
 | `UNTIS_SCHOOL_NAME` | ✅       | -                 | School identifier (shown in the login URL)                  |
 | `NTFY_BASE_URL`     |          | `https://ntfy.sh` | ntfy server URL (use your own for self-hosted)              |
 | `NTFY_TOPIC`        |          | `untis-alerts`    | ntfy topic to publish to — make this unique                 |
+| `LOOK_AHEAD_DAYS`   |          | `7`               | Number of days to look ahead for changes                    |
 | `CHECK_INTERVAL`    |          | `5m`              | How often to check. Accepts Go durations: `1m`, `30s`, `1h` |
 | `LOG_FORMAT`        |          | `text`            | `text` for human-readable, `json` for log aggregators       |
 

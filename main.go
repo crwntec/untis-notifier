@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 	"untis-notifier/diff"
@@ -64,7 +65,7 @@ func main() {
 	var prev untis.Timetable
 	first := true
 	for {
-		prev, first = runCheck(ctx, client, ntfy, cfg.ntfyTopic, info, prev, first)
+		prev, first = runCheck(ctx, client, ntfy, cfg.ntfyTopic, cfg.lookAhead, info, prev, first)
 
 		select {
 		case <-ctx.Done():
@@ -80,13 +81,14 @@ func runCheck(
 	client *untis.Client,
 	ntfy *notifier.Client,
 	topic string,
+	lookAheadDays int,
 	info untis.UntisInfo,
 	old untis.Timetable,
 	first bool,
 ) (untis.Timetable, bool) {
 	now := time.Now()
 	start := now.Format(time.DateOnly)
-	end := now.Add(24 * time.Hour).Format(time.DateOnly)
+	end := now.Add(time.Duration(lookAheadDays) * 24 * time.Hour).Format(time.DateOnly)
 
 	slog.Info("fetching timetable", "start", start, "end", end)
 
@@ -145,6 +147,7 @@ type appConfig struct {
 	ntfyBaseURL string
 	ntfyTopic   string
 	interval    time.Duration
+	lookAhead   int
 }
 
 func configFromEnv() (appConfig, error) {
@@ -165,6 +168,12 @@ func configFromEnv() (appConfig, error) {
 		return appConfig{}, fmt.Errorf("invalid CHECK_INTERVAL %q: %w", intervalStr, err)
 	}
 
+	lookAheadStr := envOr("LOOK_AHEAD", "7")
+	lookAheadDays, err := strconv.Atoi(lookAheadStr)
+	if err != nil {
+		return appConfig{}, fmt.Errorf("invalid LOOK_AHEAD %q: %w", lookAheadStr, err)
+	}
+
 	return appConfig{
 		untis: untis.Config{
 			BaseURL:    baseURL,
@@ -175,6 +184,7 @@ func configFromEnv() (appConfig, error) {
 		ntfyBaseURL: ntfyBaseURL,
 		ntfyTopic:   ntfyTopic,
 		interval:    interval,
+		lookAhead:   lookAheadDays,
 	}, nil
 }
 
