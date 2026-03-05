@@ -10,11 +10,17 @@ func positionItemToChangableEntry(items []PositionItem) (ChangableEntry, error) 
 		return ChangableEntry{}, fmt.Errorf("no position items provided")
 	}
 	item := items[0]
-	current := VariableString{item.Current.ShortName, item.Current.LongName}
+
+	var current VariableString
+	if item.Current != nil {
+		current = VariableString{item.Current.ShortName, item.Current.LongName}
+	}
+
 	planned := current
 	if item.Removed != nil {
-		planned = VariableString{item.Removed.ShortName, item.Current.LongName}
+		planned = VariableString{item.Removed.ShortName, item.Removed.LongName}
 	}
+
 	return ChangableEntry{
 		Current: current,
 		Planned: planned,

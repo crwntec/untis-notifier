@@ -91,7 +91,7 @@ type GridEntry struct {
 }
 
 type PositionItem struct {
-	Current PositionItemEntry  `json:"current"`
+	Current *PositionItemEntry `json:"current"`
 	Removed *PositionItemEntry `json:"removed"`
 }
 
