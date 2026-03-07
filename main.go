@@ -160,7 +160,7 @@ func configFromEnv() (appConfig, error) {
 	}
 
 	ntfyBaseURL := envOr("NTFY_BASE_URL", "https://ntfy.sh")
-	ntfyTopic := envOr("NTFY_TOPIC", "untis-alerts")
+	ntfyTopic := envOr("NTFY_TOPIC", "untis-notifier")
 
 	intervalStr := envOr("CHECK_INTERVAL", "5m")
 	interval, err := time.ParseDuration(intervalStr)

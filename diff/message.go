@@ -14,7 +14,8 @@ func ToMessage(d TimetableDiff) notifier.Message {
 
 	var sb strings.Builder
 	for _, lesson := range d.Changes {
-		fmt.Fprintf(&sb, "%s (%s – %s)\n",
+		fmt.Fprintf(&sb, "%s: %s (%s – %s)\n",
+			lesson.Start.Format("02.01.2006"),
 			lesson.Subject,
 			lesson.Start.Format("15:04"),
 			lesson.End.Format("15:04"),

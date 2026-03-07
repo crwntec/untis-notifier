@@ -69,7 +69,10 @@ func (c *Client) refreshToken() error {
 
 	if res.StatusCode != http.StatusOK {
 		// Token endpoint failed — fall back to full re-login
-		return c.Login(c.username, c.password)
+		if res.StatusCode == http.StatusUnauthorized {
+			return c.Login(c.username, c.password)
+		}
+		return fmt.Errorf("refresh token failed: status code %d", res.StatusCode)
 	}
 
 	body, err := io.ReadAll(res.Body)
