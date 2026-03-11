@@ -33,6 +33,7 @@ const (
 	FieldNotes     LessonField = "notes"
 	FieldStartTime LessonField = "startTime"
 	FieldEndTime   LessonField = "endTime"
+	FieldType      LessonField = "type"
 )
 
 func Compare(old, new untis.Timetable) TimetableDiff {
@@ -80,6 +81,8 @@ func diffLesson(l, other untis.Lesson) []LessonChange {
 	check(FieldSubject, l.Subject.Current.Long, other.Subject.Current.Long)
 	check(FieldRoom, l.Room.Current.Short, other.Room.Current.Short)
 	check(FieldNotes, l.Notes, other.Notes)
+	check(FieldType, l.Type, other.Type)
+
 	if !l.Start.Equal(other.Start) {
 		check(FieldStartTime, l.Start.Format(untis.Layout), other.Start.Format(untis.Layout))
 	}

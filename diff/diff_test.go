@@ -33,6 +33,12 @@ func TestDiffLesson_StatusChange(t *testing.T) {
 			wantLen: 3,
 		},
 		{
+			name:    "type change",
+			old:     untis.Lesson{Type: "NORMAL_TEACHING_PERIOD"},
+			new:     untis.Lesson{Type: "EXAM"},
+			wantLen: 1,
+		},
+		{
 			name:    "no change",
 			old:     untis.Lesson{Start: now, End: now.Add(time.Hour)},
 			new:     untis.Lesson{Start: now, End: now.Add(time.Hour)},

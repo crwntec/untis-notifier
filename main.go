@@ -53,6 +53,16 @@ type statusResponse struct {
 }
 
 func main() {
+	healthcheckMode := len(os.Args) > 1 && os.Args[1] == "-healthcheck"
+
+	if healthcheckMode {
+		port := envOr("PORT", "8080")
+		resp, err := http.Get("http://localhost:" + port + "/health")
+		if err != nil || resp.StatusCode != http.StatusOK {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 	// .env is optional — in Docker, vars come from the environment directly
 	_ = godotenv.Load()
 
