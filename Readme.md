@@ -96,6 +96,43 @@ All configuration is via environment variables:
 | `LOOK_AHEAD`        |          | `7`                | Number of days ahead to monitor for changes                  |
 | `CHECK_INTERVAL`    |          | `5m`               | How often to poll. Accepts Go durations: `30s`, `5m`, `1h`  |
 | `LOG_FORMAT`        |          | `text`             | `text` for human-readable logs, `json` for log aggregators  |
+| `PORT`              |          | `8080`             | Port for the built-in HTTP server                     |
+
+---
+
+## HTTP endpoints
+
+untis-notifier exposes a small HTTP server for health checks and monitoring integration.
+
+| Endpoint    | Description                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
+| `GET /health` | Returns `200 OK` as long as the process is running. Use for liveness probes. |
+| `GET /status` | Returns a JSON object with the current state of the notifier.              |
+
+Example `/status` response:
+
+```json
+{
+  "ready": true,
+  "lastCheck": "2025-03-14T08:30:00Z"
+}
+```
+
+`ready` is `false` until the first timetable fetch has completed successfully. This is useful as a readiness probe — the process may be up but not yet functional if WebUntis login is still in progress.
+
+**Docker Compose health check example:**
+
+```yaml
+untis-notifier:
+  image: crwntec/untis-notifier:latest
+  restart: unless-stopped
+  env_file: .env
+  healthcheck:
+    test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+```
 
 ---
 
@@ -147,6 +184,10 @@ Then point the ntfy app at your server's IP/domain instead of `ntfy.sh`.
 **"first run — baseline stored" then nothing**
 - This is expected. On the first run, the current timetable is saved as a baseline. Notifications are only sent when something *changes* from that baseline. Wait for the next poll after a real change occurs.
 
+**`/status` shows `ready: false` and never changes**
+- Login or the first timetable fetch is failing — check logs for errors above the HTTP server startup message
+- `ready` only becomes `true` after the first successful fetch, not on process start
+
 **Seeing too many false positives**
 - Lower `LOOK_AHEAD` to reduce the window being monitored (e.g. `LOOK_AHEAD=2` for today and tomorrow only)
 
@@ -173,7 +214,7 @@ air
 
 ## Supported schools
 
-WebUntis is widely used across **Germany, Austria, Switzerland, South Tyrol, and the Netherlands**. If your school uses WebUntis for its timetable, this tool should work without any changes.
+WebUntis is widely used across **DACH**. If your school uses WebUntis for its timetable, this tool should work without any changes.
 
 Not sure if your school uses WebUntis? Check if your school's timetable URL contains `webuntis.com`.
 
@@ -186,9 +227,3 @@ Contributions are welcome! Please open an issue first for significant changes so
 - Bug reports: use the issue tracker
 - Feature requests: open a discussion or issue
 - Pull requests: please include tests for new logic
-
----
-
-## License
-
-MIT
