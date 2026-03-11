@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 	"untis-notifier/diff"
@@ -15,6 +18,39 @@ import (
 
 	"github.com/joho/godotenv"
 )
+
+type appState struct {
+	mu        sync.RWMutex
+	lastCheck time.Time
+	ready     bool
+}
+
+func apiHandler(state *appState) http.Handler {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	mux.HandleFunc("GET /status", func(w http.ResponseWriter, r *http.Request) {
+		state.mu.RLock()
+		resp := statusResponse{
+			Ready:     state.ready,
+			LastCheck: state.lastCheck,
+		}
+		state.mu.RUnlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	})
+
+	return mux
+}
+
+type statusResponse struct {
+	Ready     bool      `json:"ready"`
+	LastCheck time.Time `json:"lastCheck"`
+}
 
 func main() {
 	// .env is optional — in Docker, vars come from the environment directly
@@ -30,6 +66,22 @@ func main() {
 		slog.Error("invalid configuration", "err", err)
 		os.Exit(1)
 	}
+
+	slog.Info("starting HTTP server", "port", cfg.port)
+	state := &appState{}
+	srv := &http.Server{
+		Addr:    ":" + cfg.port,
+		Handler: apiHandler(state),
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			if err == http.ErrServerClosed {
+				return
+			}
+			slog.Error("failed to start HTTP server", "err", err)
+		}
+	}()
 
 	client, err := untis.NewClient(cfg.untis)
 	if err != nil {
@@ -61,11 +113,14 @@ func main() {
 		"interval", cfg.interval,
 		"ntfy_topic", cfg.ntfyTopic,
 	)
+	state.ready = true
 
 	var prev untis.Timetable
 	first := true
+	defer srv.Shutdown(context.Background())
 	for {
 		prev, first = runCheck(ctx, client, ntfy, cfg.ntfyTopic, cfg.lookAhead, info, prev, first)
+		state.lastCheck = time.Now()
 
 		select {
 		case <-ctx.Done():
@@ -148,6 +203,7 @@ type appConfig struct {
 	ntfyTopic   string
 	interval    time.Duration
 	lookAhead   int
+	port        string
 }
 
 func configFromEnv() (appConfig, error) {
@@ -174,6 +230,8 @@ func configFromEnv() (appConfig, error) {
 		return appConfig{}, fmt.Errorf("invalid LOOK_AHEAD %q: %w", lookAheadStr, err)
 	}
 
+	portStr := envOr("PORT", "8080")
+
 	return appConfig{
 		untis: untis.Config{
 			BaseURL:    baseURL,
@@ -185,6 +243,7 @@ func configFromEnv() (appConfig, error) {
 		ntfyTopic:   ntfyTopic,
 		interval:    interval,
 		lookAhead:   lookAheadDays,
+		port:        portStr,
 	}, nil
 }
 
