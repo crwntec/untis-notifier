@@ -1,0 +1,5 @@
+services:
+  untis-notifier:
+    image: crwntec/untis-notifier:latest
+    restart: unless-stopped
+    env_file: .env
