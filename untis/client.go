@@ -68,8 +68,8 @@ func (c *Client) refreshToken() error {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		// Token endpoint failed — fall back to full re-login
-		if res.StatusCode == http.StatusUnauthorized {
+		// Token endpoint failed with redirect — fall back to full re-login
+		if res.StatusCode == http.StatusFound {
 			return c.Login(c.username, c.password)
 		}
 		return fmt.Errorf("refresh token failed: status code %d", res.StatusCode)
@@ -191,8 +191,6 @@ func (c *Client) GetTimetable(ctx context.Context, info UntisInfo, start, end st
 	}
 	defer resp.Body.Close()
 
-	// BUG FIX: the original code checked resp.StatusCode after a network error,
-	// where resp could be nil. Now we handle the status on the successful response.
 	if resp.StatusCode == http.StatusUnauthorized {
 		if err := c.refreshToken(); err != nil {
 			return Timetable{}, fmt.Errorf("re-auth failed: %w", err)
