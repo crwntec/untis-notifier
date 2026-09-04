@@ -7,7 +7,7 @@ import (
 
 func positionItemToChangableEntry(items []PositionItem) (ChangableEntry, error) {
 	if len(items) == 0 {
-		return ChangableEntry{}, fmt.Errorf("no position items provided")
+		return ChangableEntry{}, nil
 	}
 	item := items[0]
 
